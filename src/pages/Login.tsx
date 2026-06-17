@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sword, Shield, Users } from 'lucide-react';
 import { Button } from '@/components/ui/Button.js';
@@ -14,20 +14,22 @@ export default function Login() {
   const user = useAppStore((state) => state.user);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    const success = await login(username, password);
-    setIsLoading(false);
-    
-    if (success) {
-      if (user?.guildId) {
+  useEffect(() => {
+    if (user) {
+      if (user.guildId) {
         navigate(`/guild/${user.guildId}`);
       } else {
         navigate('/hall');
       }
     }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    await login(username, password);
+    setIsLoading(false);
   };
 
   return (

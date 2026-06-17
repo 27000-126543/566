@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, NavLink, Navigate, useParams, useNavigate } from 'react-router-dom';
-import { Users, Scroll, Package, Megaphone, Crown, ArrowLeft, LogOut, Shield, Coins, History } from 'lucide-react';
+import { Users, Scroll, Package, Megaphone, Crown, ArrowLeft, LogOut, Shield, Coins, History, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/Button.js';
 import { Badge } from '@/components/ui/Badge.js';
 import { useAppStore } from '@/store/index.js';
+import GuildDashboard from './GuildDashboard.js';
 import Members from './Members.js';
 import Quests from './Quests.js';
 import Warehouse from './Warehouse.js';
@@ -31,13 +32,20 @@ export default function GuildHome() {
     navigate('/login');
   };
 
-  const navItems = [
-    { path: 'members', label: '成员管理', icon: Users },
-    { path: 'quests', label: '任务系统', icon: Scroll },
-    { path: 'warehouse', label: '仓库管理', icon: Package },
-    { path: 'announcements', label: '公告管理', icon: Megaphone },
-    { path: 'logs', label: '操作记录', icon: History },
+  const isLeader = user?.guildRole === 'leader';
+  const isViceLeader = currentGuild?.viceLeaderIds.includes(user?.id || '');
+  const canManage = isLeader || isViceLeader;
+
+  const allNavItems = [
+    { path: 'dashboard', label: '工作台', icon: LayoutDashboard, show: true },
+    { path: 'members', label: '成员管理', icon: Users, show: true },
+    { path: 'quests', label: '任务系统', icon: Scroll, show: true },
+    { path: 'warehouse', label: '仓库管理', icon: Package, show: true },
+    { path: 'announcements', label: '公告管理', icon: Megaphone, show: true },
+    { path: 'logs', label: '操作记录', icon: History, show: true },
   ];
+
+  const navItems = allNavItems.filter((item) => item.show);
 
   return (
     <div className="min-h-screen bg-game-bg flex">
@@ -156,7 +164,8 @@ export default function GuildHome() {
 
         <main className="flex-1 p-4 lg:p-8 overflow-auto">
           <Routes>
-            <Route index element={<Navigate to="members" replace />} />
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<GuildDashboard />} />
             <Route path="members" element={<Members />} />
             <Route path="quests" element={<Quests />} />
             <Route path="warehouse" element={<Warehouse />} />

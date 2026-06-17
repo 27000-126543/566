@@ -27,7 +27,7 @@ export default function App() {
           }
         />
         <Route
-          path="/guild/:id"
+          path="/guild/:id/*"
           element={
             <ProtectedRoute>
               <GuildHome />

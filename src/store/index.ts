@@ -84,10 +84,10 @@ export const useAppStore = create<AppState>()(
         if (res.success && res.data) {
           set({ user: res.data });
           set({ notification: { type: 'success', message: '登录成功！' } });
-          return true;
+          return res.data;
         } else {
           set({ notification: { type: 'error', message: res.error || '登录失败' } });
-          return false;
+          return null;
         }
       },
       
@@ -96,10 +96,10 @@ export const useAppStore = create<AppState>()(
         if (res.success && res.data) {
           set({ user: res.data });
           set({ notification: { type: 'success', message: '注册成功！' } });
-          return true;
+          return res.data;
         } else {
           set({ notification: { type: 'error', message: res.error || '注册失败' } });
-          return false;
+          return null;
         }
       },
       
