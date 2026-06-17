@@ -24,8 +24,8 @@ interface AppState {
   setCurrentGuild: (guild: Guild | null) => void;
   setNotification: (notification: { type: 'success' | 'error' | 'info'; message: string } | null) => void;
   
-  login: (username: string, password: string) => Promise<boolean>;
-  register: (username: string, password: string, profession: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<User | null>;
+  register: (username: string, password: string, profession: string) => Promise<User | null>;
   logout: () => void;
   
   fetchGuilds: () => Promise<void>;

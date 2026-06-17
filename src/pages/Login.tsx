@@ -11,6 +11,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const login = useAppStore((state) => state.login);
+  const user = useAppStore((state) => state.user);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,7 +22,11 @@ export default function Login() {
     setIsLoading(false);
     
     if (success) {
-      navigate('/hall');
+      if (user?.guildId) {
+        navigate(`/guild/${user.guildId}`);
+      } else {
+        navigate('/hall');
+      }
     }
   };
 
