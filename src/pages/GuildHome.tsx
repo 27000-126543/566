@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, NavLink, Navigate, useParams, useNavigate } from 'react-router-dom';
-import { Users, Scroll, Package, Megaphone, Crown, ArrowLeft, LogOut, Shield, Coins } from 'lucide-react';
+import { Users, Scroll, Package, Megaphone, Crown, ArrowLeft, LogOut, Shield, Coins, History } from 'lucide-react';
 import { Button } from '@/components/ui/Button.js';
 import { Badge } from '@/components/ui/Badge.js';
 import { useAppStore } from '@/store/index.js';
@@ -8,6 +8,7 @@ import Members from './Members.js';
 import Quests from './Quests.js';
 import Warehouse from './Warehouse.js';
 import Announcements from './Announcements.js';
+import GuildLogs from './GuildLogs.js';
 import { ROLE_NAMES } from '../../shared/types.js';
 
 export default function GuildHome() {
@@ -35,6 +36,7 @@ export default function GuildHome() {
     { path: 'quests', label: '任务系统', icon: Scroll },
     { path: 'warehouse', label: '仓库管理', icon: Package },
     { path: 'announcements', label: '公告管理', icon: Megaphone },
+    { path: 'logs', label: '操作记录', icon: History },
   ];
 
   return (
@@ -159,6 +161,7 @@ export default function GuildHome() {
             <Route path="quests" element={<Quests />} />
             <Route path="warehouse" element={<Warehouse />} />
             <Route path="announcements" element={<Announcements />} />
+            <Route path="logs" element={<GuildLogs />} />
           </Routes>
         </main>
       </div>

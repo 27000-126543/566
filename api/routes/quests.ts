@@ -84,4 +84,34 @@ router.post('/quests/settle', async (req: Request, res: Response): Promise<void>
   }
 });
 
+router.post('/quests/:id/settle', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+    await questService.settleQuest(id, userId);
+    res.json({ success: true, data: null });
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      res.status(400).json({ success: false, error: err.message });
+    } else {
+      res.status(500).json({ success: false, error: '服务器错误' });
+    }
+  }
+});
+
+router.post('/quests/settle-all/:guildId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { guildId } = req.params;
+    const { userId } = req.body;
+    const result = await questService.settleAllPendingQuests(guildId, userId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      res.status(400).json({ success: false, error: err.message });
+    } else {
+      res.status(500).json({ success: false, error: '服务器错误' });
+    }
+  }
+});
+
 export default router;

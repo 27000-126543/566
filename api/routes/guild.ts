@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import * as guildService from '../services/guildService.js';
 import { ValidationError } from '../validators/index.js';
+import { getDb } from '../db/index.js';
 
 const router = Router();
 
@@ -63,7 +64,21 @@ router.post('/:id/apply', async (req: Request, res: Response): Promise<void> => 
 router.get('/:id/applications', async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const result = await guildService.getGuildApplications(id);
+    const applications = await guildService.getGuildApplications(id);
+    const db = await getDb();
+    const result = applications.map((app) => {
+      const user = db.data!.users.find((u) => u.id === app.userId);
+      return {
+        ...app,
+        user: user
+          ? {
+              username: user.username,
+              profession: user.profession,
+              level: user.level,
+            }
+          : null,
+      };
+    });
     res.json({ success: true, data: result });
   } catch (err) {
     if (err instanceof ValidationError) {

@@ -91,6 +91,8 @@ export function getQuestStatusColor(status: QuestStatus): string {
     available: 'text-green-400 bg-green-500/20',
     in_progress: 'text-yellow-400 bg-yellow-500/20',
     completed: 'text-blue-400 bg-blue-500/20',
+    pending_settlement: 'text-orange-400 bg-orange-500/20',
+    settled: 'text-emerald-400 bg-emerald-500/20',
     expired: 'text-gray-400 bg-gray-500/20',
   };
   return colors[status];

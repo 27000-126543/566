@@ -34,7 +34,6 @@ const rarityOptions = Object.entries(RARITY_NAMES).map(([value, label]) => ({ va
 export default function Warehouse() {
   const { id } = useParams<{ id: string }>();
   const user = useAppStore((state) => state.user);
-  const currentGuild = useAppStore((state) => state.currentGuild);
   const warehouseItems = useAppStore((state) => state.warehouseItems);
   const itemApplications = useAppStore((state) => state.itemApplications);
   const members = useAppStore((state) => state.members);
@@ -59,9 +58,7 @@ export default function Warehouse() {
   });
   const [applyQuantity, setApplyQuantity] = useState(1);
 
-  const isLeader = user?.id === currentGuild?.leaderId;
-  const isViceLeader = currentGuild?.viceLeaderIds.includes(user?.id || '');
-  const canReview = isLeader || isViceLeader;
+  const canReview = user?.guildRole === 'leader' || user?.guildRole === 'vice_leader';
 
   useEffect(() => {
     if (id) {

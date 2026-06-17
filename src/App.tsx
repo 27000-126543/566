@@ -9,6 +9,7 @@ import Members from '@/pages/Members.js';
 import Quests from '@/pages/Quests.js';
 import Warehouse from '@/pages/Warehouse.js';
 import Announcements from '@/pages/Announcements.js';
+import GuildLogs from '@/pages/GuildLogs.js';
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="quests" element={<Quests />} />
           <Route path="warehouse" element={<Warehouse />} />
           <Route path="announcements" element={<Announcements />} />
+          <Route path="logs" element={<GuildLogs />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

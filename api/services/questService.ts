@@ -9,10 +9,12 @@ import {
   validateUserExists,
   validateGuildExists,
   validateGuildRole,
+  validateCanSettleQuests,
   ValidationError,
 } from '../validators/index.js';
-import type { Quest } from '../../shared/types.js';
+import type { Quest, GuildLogType } from '../../shared/types.js';
 import { generateId } from './authService.js';
+import { createGuildLog } from './guildLogService.js';
 
 export async function publishQuest(
   guildId: string,
@@ -116,17 +118,64 @@ export async function completeQuest(questId: string, userId: string): Promise<vo
     throw new ValidationError('您不是该任务的接取人');
   }
 
-  quest.status = 'completed';
+  quest.status = 'pending_settlement';
   quest.completedAt = Date.now();
 
-  user.contribution += quest.reward.contribution;
+  await saveDb();
+}
+
+export async function settleQuest(questId: string, operatorId: string): Promise<void> {
+  const db = await getDb();
+
+  const operator = db.data!.users.find((u) => u.id === operatorId);
+  validateUserExists(operator);
+  validateCanSettleQuests(operator);
+
+  const quest = db.data!.quests.find((q) => q.id === questId);
+  if (!quest) {
+    throw new ValidationError('任务不存在');
+  }
+  if (quest.status !== 'pending_settlement') {
+    throw new ValidationError('该任务状态不是待结算，无法结算');
+  }
+
+  const member = db.data!.users.find((u) => u.id === quest.acceptedBy);
+  if (member) {
+    member.contribution += quest.reward.contribution;
+  }
 
   const guild = db.data!.guilds.find((g) => g.id === quest.guildId);
   if (guild) {
     guild.funds += quest.reward.funds;
   }
 
+  quest.status = 'settled';
+
+  await createGuildLog(quest.guildId, 'quest_settle', operatorId, quest.acceptedBy, `结算任务「${quest.title}」`, {
+    questId: quest.id,
+    questTitle: quest.title,
+    rewardContribution: quest.reward.contribution,
+    rewardFunds: quest.reward.funds,
+  });
+
   await saveDb();
+}
+
+export async function settleAllPendingQuests(guildId: string, operatorId: string): Promise<number> {
+  const db = await getDb();
+
+  const guild = db.data!.guilds.find((g) => g.id === guildId);
+  validateGuildExists(guild);
+
+  const pendingQuests = db.data!.quests.filter(
+    (q) => q.guildId === guildId && q.status === 'pending_settlement'
+  );
+
+  for (const quest of pendingQuests) {
+    await settleQuest(quest.id, operatorId);
+  }
+
+  return pendingQuests.length;
 }
 
 export async function settleExpiredQuests(): Promise<{ expired: number; settled: number }> {

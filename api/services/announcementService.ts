@@ -4,10 +4,11 @@ import {
   validateAnnouncementContent,
   validateUserExists,
   validateGuildExists,
-  validateGuildRole,
+  validateCanCreateAnnouncement,
 } from '../validators/index.js';
 import type { Announcement } from '../../shared/types.js';
 import { generateId } from './authService.js';
+import { createGuildLog } from './guildLogService.js';
 
 export async function createAnnouncement(
   guildId: string,
@@ -19,7 +20,7 @@ export async function createAnnouncement(
 
   const author = db.data!.users.find((u) => u.id === authorId);
   validateUserExists(author);
-  validateGuildRole(author, ['leader', 'vice_leader']);
+  validateCanCreateAnnouncement(author);
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
@@ -38,6 +39,12 @@ export async function createAnnouncement(
 
   db.data!.announcements.push(newAnnouncement);
   await saveDb();
+
+  await createGuildLog(guildId, 'announcement_create', authorId, null, `发布公告「${title}」`, {
+    announcementId: newAnnouncement.id,
+    title,
+    content,
+  });
 
   return newAnnouncement;
 }

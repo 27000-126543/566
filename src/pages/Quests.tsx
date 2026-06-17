@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Plus, Clock, CheckCircle, PlayCircle, XCircle, Coins, Star, Calendar } from 'lucide-react';
+import { Plus, Clock, CheckCircle, PlayCircle, XCircle, Coins, Star, Calendar, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/Button.js';
 import { Input } from '@/components/ui/Input.js';
 import { Textarea } from '@/components/ui/Textarea.js';
@@ -17,15 +17,29 @@ const statusIcons: Record<QuestStatus, React.ReactNode> = {
   available: <PlayCircle className="w-5 h-5 text-green-400" />,
   in_progress: <Clock className="w-5 h-5 text-yellow-400" />,
   completed: <CheckCircle className="w-5 h-5 text-blue-400" />,
+  pending_settlement: <CheckCircle className="w-5 h-5 text-orange-400" />,
+  settled: <Wallet className="w-5 h-5 text-emerald-400" />,
   expired: <XCircle className="w-5 h-5 text-red-400" />,
 };
 
-const statusVariants: Record<QuestStatus, 'success' | 'warning' | 'info' | 'danger'> = {
+const statusVariants: Record<QuestStatus, 'success' | 'warning' | 'info' | 'danger' | 'default'> = {
   available: 'success',
   in_progress: 'warning',
   completed: 'info',
+  pending_settlement: 'warning',
+  settled: 'success',
   expired: 'danger',
 };
+
+const filterTabs: { key: QuestStatus | 'all'; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'available', label: '可接取' },
+  { key: 'in_progress', label: '进行中' },
+  { key: 'completed', label: '已完成' },
+  { key: 'pending_settlement', label: '待结算' },
+  { key: 'settled', label: '已发放' },
+  { key: 'expired', label: '已过期' },
+];
 
 export default function Quests() {
   const { id } = useParams<{ id: string }>();
@@ -33,11 +47,15 @@ export default function Quests() {
   const currentGuild = useAppStore((state) => state.currentGuild);
   const quests = useAppStore((state) => state.quests);
   const fetchQuests = useAppStore((state) => state.fetchQuests);
+  const fetchGuildDetail = useAppStore((state) => state.fetchGuildDetail);
   const publishQuest = useAppStore((state) => state.publishQuest);
   const acceptQuest = useAppStore((state) => state.acceptQuest);
   const completeQuest = useAppStore((state) => state.completeQuest);
+  const settleQuest = useAppStore((state) => state.settleQuest);
+  const settleAllQuests = useAppStore((state) => state.settleAllQuests);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSettlingAll, setIsSettlingAll] = useState(false);
   const [filter, setFilter] = useState<QuestStatus | 'all'>('all');
   const [formData, setFormData] = useState({
     title: '',
@@ -47,9 +65,9 @@ export default function Quests() {
     deadline: '',
   });
 
-  const isLeader = user?.id === currentGuild?.leaderId;
+  const isLeader = user?.guildRole === 'leader';
   const isViceLeader = currentGuild?.viceLeaderIds.includes(user?.id || '');
-  const canPublish = isLeader || isViceLeader;
+  const canManage = isLeader || isViceLeader;
 
   useEffect(() => {
     if (id) {
@@ -106,11 +124,34 @@ export default function Quests() {
     }
   };
 
+  const handleSettle = async (questId: string) => {
+    if (!user || !id) return;
+    const success = await settleQuest(questId, user.id);
+    if (success) {
+      fetchQuests(id);
+      fetchGuildDetail(id);
+    }
+  };
+
+  const handleSettleAll = async () => {
+    if (!user || !id) return;
+    setIsSettlingAll(true);
+    const success = await settleAllQuests(id, user.id);
+    setIsSettlingAll(false);
+    if (success) {
+      fetchQuests(id);
+      fetchGuildDetail(id);
+    }
+  };
+
   const canAccept = (quest: typeof quests[0]) =>
     quest.status === 'available' && !quest.acceptedBy;
 
   const canComplete = (quest: typeof quests[0]) =>
     quest.status === 'in_progress' && quest.acceptedBy === user?.id;
+
+  const canSettle = (quest: typeof quests[0]) =>
+    quest.status === 'pending_settlement' && canManage;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -119,30 +160,29 @@ export default function Quests() {
           <h1 className="text-2xl font-display font-bold text-game-text">任务系统</h1>
           <p className="text-game-subtext">发布、接取和完成公会任务</p>
         </div>
-        {canPublish && (
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="w-5 h-5 mr-2" />
-            发布任务
-          </Button>
+        {canManage && (
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={handleSettleAll} isLoading={isSettlingAll}>
+              <Wallet className="w-5 h-5 mr-2" />
+              一键结算
+            </Button>
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="w-5 h-5 mr-2" />
+              发布任务
+            </Button>
+          </div>
         )}
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant={filter === 'all' ? 'primary' : 'secondary'}
-          size="sm"
-          onClick={() => setFilter('all')}
-        >
-          全部
-        </Button>
-        {(Object.keys(QUEST_STATUS_NAMES) as QuestStatus[]).map((status) => (
+        {filterTabs.map((tab) => (
           <Button
-            key={status}
-            variant={filter === status ? 'primary' : 'secondary'}
+            key={tab.key}
+            variant={filter === tab.key ? 'primary' : 'secondary'}
             size="sm"
-            onClick={() => setFilter(status)}
+            onClick={() => setFilter(tab.key)}
           >
-            {QUEST_STATUS_NAMES[status]}
+            {tab.label}
           </Button>
         ))}
       </div>
@@ -208,6 +248,12 @@ export default function Quests() {
                       完成任务
                     </Button>
                   )}
+                  {canSettle(quest) && (
+                    <Button className="flex-1" onClick={() => handleSettle(quest.id)}>
+                      <Wallet className="w-4 h-4 mr-2" />
+                      结算
+                    </Button>
+                  )}
                   {quest.status === 'in_progress' && quest.acceptedBy !== user?.id && (
                     <Button className="flex-1" disabled>
                       已被其他人接取
@@ -216,6 +262,16 @@ export default function Quests() {
                   {quest.status === 'completed' && (
                     <Button className="flex-1" variant="secondary" disabled>
                       已完成
+                    </Button>
+                  )}
+                  {quest.status === 'pending_settlement' && !canManage && (
+                    <Button className="flex-1" variant="secondary" disabled>
+                      已完成待结算
+                    </Button>
+                  )}
+                  {quest.status === 'settled' && (
+                    <Button className="flex-1" variant="secondary" disabled>
+                      奖励已发放
                     </Button>
                   )}
                   {quest.status === 'expired' && (

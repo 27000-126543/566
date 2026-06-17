@@ -9,6 +9,7 @@ import guildRoutes from './routes/guild.js';
 import questRoutes from './routes/quests.js';
 import warehouseRoutes from './routes/warehouse.js';
 import announcementRoutes from './routes/announcements.js';
+import guildLogRoutes from './routes/guildLogs.js';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use('/api/guilds', guildRoutes);
 app.use('/api', questRoutes);
 app.use('/api', warehouseRoutes);
 app.use('/api', announcementRoutes);
+app.use('/api/guild-logs', guildLogRoutes);
 
 app.use(
   '/api/health',

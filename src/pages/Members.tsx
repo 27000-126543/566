@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card.j
 import { Badge } from '@/components/ui/Badge.js';
 import Empty from '@/components/Empty.js';
 import { useAppStore } from '@/store/index.js';
-import { formatDate } from '@/utils/format.js';
+import { formatTime } from '@/utils/format.js';
 import { PROFESSION_NAMES, ROLE_NAMES } from '../../shared/types.js';
 import type { GuildRole, Profession } from '../../shared/types.js';
 
@@ -31,6 +31,7 @@ export default function Members() {
   const currentGuild = useAppStore((state) => state.currentGuild);
   const fetchMembers = useAppStore((state) => state.fetchMembers);
   const fetchApplications = useAppStore((state) => state.fetchApplications);
+  const fetchGuildDetail = useAppStore((state) => state.fetchGuildDetail);
   const approveApplication = useAppStore((state) => state.approveApplication);
   const rejectApplication = useAppStore((state) => state.rejectApplication);
   const kickMember = useAppStore((state) => state.kickMember);
@@ -38,9 +39,8 @@ export default function Members() {
   const removeViceLeader = useAppStore((state) => state.removeViceLeader);
   const [activeTab, setActiveTab] = useState<'members' | 'applications'>('members');
 
-  const isLeader = user?.id === currentGuild?.leaderId;
+  const isLeader = user?.guildRole === 'leader';
   const isViceLeader = currentGuild?.viceLeaderIds.includes(user?.id || '');
-  const canManage = isLeader || isViceLeader;
 
   useEffect(() => {
     if (id) {
@@ -53,8 +53,9 @@ export default function Members() {
     if (!id || !user) return;
     const success = await approveApplication(id, appId, user.id);
     if (success) {
-      fetchMembers(id);
       fetchApplications(id);
+      fetchMembers(id);
+      fetchGuildDetail(id);
     }
   };
 
@@ -63,6 +64,8 @@ export default function Members() {
     const success = await rejectApplication(id, appId, user.id);
     if (success) {
       fetchApplications(id);
+      fetchMembers(id);
+      fetchGuildDetail(id);
     }
   };
 
@@ -71,6 +74,7 @@ export default function Members() {
     const success = await kickMember(id, userId, user.id);
     if (success) {
       fetchMembers(id);
+      fetchGuildDetail(id);
     }
   };
 
@@ -152,26 +156,24 @@ export default function Members() {
                       <div className="mt-2 text-xs text-game-subtext">
                         贡献: <span className="text-gold-400 font-medium">{member.contribution}</span>
                         <span className="mx-2">·</span>
-                        加入: {formatDate(member.createdAt)}
+                        加入: {formatTime(member.createdAt)}
                       </div>
                     </div>
                   </div>
 
-                  {canManage && member.id !== user?.id && member.guildRole !== 'leader' && (
+                  {isLeader && member.id !== user?.id && member.guildRole !== 'leader' && (
                     <div className="flex gap-2 mt-4 pt-4 border-t border-game-border">
                       {member.guildRole === 'vice_leader' ? (
-                        isLeader && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => handleRemoveVice(member.id)}
-                          >
-                            <UserX className="w-4 h-4 mr-2" />
-                            罢免副会长
-                          </Button>
-                        )
-                      ) : isLeader && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleRemoveVice(member.id)}
+                        >
+                          <UserX className="w-4 h-4 mr-2" />
+                          罢免副会长
+                        </Button>
+                      ) : (
                         <Button
                           variant="secondary"
                           size="sm"
@@ -189,7 +191,7 @@ export default function Members() {
                         onClick={() => handleKick(member.id)}
                       >
                         <UserMinus className="w-4 h-4 mr-2" />
-                        踢出
+                        踢出成员
                       </Button>
                     </div>
                   )}
@@ -209,7 +211,7 @@ export default function Members() {
             ) : (
               <div className="space-y-4">
                 {pendingApplications.map((app) => {
-                  const applicant = members.find((m) => m.id === app.userId);
+                  const applicant = app.user;
                   return (
                     <div
                       key={app.id}
@@ -217,18 +219,34 @@ export default function Members() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center">
-                          <Users className="w-5 h-5 text-white" />
+                          {applicant && professionIcons[applicant.profession as Profession] ? (
+                            professionIcons[applicant.profession as Profession]
+                          ) : (
+                            <Users className="w-5 h-5 text-white" />
+                          )}
                         </div>
                         <div>
                           <p className="font-medium text-game-text">
-                            {applicant?.username || '未知用户'}
+                            {applicant ? (
+                              <>
+                                {applicant.username}
+                                <span className="ml-2 text-sm text-game-subtext">
+                                  Lv.{applicant.level}
+                                </span>
+                                <span className="ml-2 text-sm text-game-subtext">
+                                  {PROFESSION_NAMES[applicant.profession as Profession]}
+                                </span>
+                              </>
+                            ) : (
+                              '未知用户'
+                            )}
                           </p>
                           <p className="text-sm text-game-subtext">
-                            申请时间: {formatDate(app.createdAt)}
+                            申请时间: {formatTime(app.createdAt)}
                           </p>
                         </div>
                       </div>
-                      {canManage && (
+                      {isLeader && (
                         <div className="flex gap-2">
                           <Button
                             variant="success"
@@ -236,7 +254,7 @@ export default function Members() {
                             onClick={() => handleApprove(app.id)}
                           >
                             <UserCheck className="w-4 h-4 mr-2" />
-                            通过
+                            批准
                           </Button>
                           <Button
                             variant="danger"

@@ -11,10 +11,12 @@ import {
   validateCanKickMember,
   validateCanAppointViceLeader,
   validateCanRemoveViceLeader,
+  validateCanApproveGuildApplication,
   ValidationError,
 } from '../validators/index.js';
 import type { Guild, User, GuildApplication } from '../../shared/types.js';
 import { generateId } from './authService.js';
+import { createGuildLog } from './guildLogService.js';
 
 export async function createGuild(
   userId: string,
@@ -49,6 +51,15 @@ export async function createGuild(
   user.guildRole = 'leader';
 
   await saveDb();
+
+  await createGuildLog(
+    newGuild.id,
+    'guild_create',
+    userId,
+    null,
+    `创建了公会「${name}」`,
+    { name, announcement }
+  );
 
   return newGuild;
 }
@@ -113,7 +124,7 @@ export async function approveApplication(
 
   const reviewer = db.data!.users.find((u) => u.id === reviewerId);
   validateUserExists(reviewer);
-  validateGuildRole(reviewer, ['leader', 'vice_leader']);
+  validateCanApproveGuildApplication(reviewer);
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
@@ -139,6 +150,15 @@ export async function approveApplication(
   guild.memberCount += 1;
 
   await saveDb();
+
+  await createGuildLog(
+    guildId,
+    'member_approve',
+    reviewerId,
+    application.userId,
+    `批准了 ${applicant.username} 的入会申请`,
+    { applicationId }
+  );
 }
 
 export async function rejectApplication(
@@ -150,7 +170,10 @@ export async function rejectApplication(
 
   const reviewer = db.data!.users.find((u) => u.id === reviewerId);
   validateUserExists(reviewer);
-  validateGuildRole(reviewer, ['leader', 'vice_leader']);
+  validateCanApproveGuildApplication(reviewer);
+
+  const guild = db.data!.guilds.find((g) => g.id === guildId);
+  validateGuildExists(guild);
 
   const application = db.data!.guildApplications.find(
     (app) => app.id === applicationId && app.guildId === guildId
@@ -162,8 +185,19 @@ export async function rejectApplication(
     throw new ValidationError('该申请已被处理');
   }
 
+  const applicant = db.data!.users.find((u) => u.id === application.userId);
+
   application.status = 'rejected';
   await saveDb();
+
+  await createGuildLog(
+    guildId,
+    'member_reject',
+    reviewerId,
+    application.userId,
+    `拒绝了 ${applicant?.username || '未知用户'} 的入会申请`,
+    { applicationId }
+  );
 }
 
 export async function kickMember(
@@ -175,7 +209,6 @@ export async function kickMember(
 
   const operator = db.data!.users.find((u) => u.id === operatorId);
   validateUserExists(operator);
-  validateGuildRole(operator, ['leader', 'vice_leader']);
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
@@ -183,6 +216,8 @@ export async function kickMember(
   const targetUser = db.data!.users.find((u) => u.id === userId);
   validateUserExists(targetUser);
   validateCanKickMember(operator, targetUser, guild);
+
+  const targetUsername = targetUser.username;
 
   targetUser.guildId = null;
   targetUser.guildRole = null;
@@ -193,6 +228,15 @@ export async function kickMember(
   }
 
   await saveDb();
+
+  await createGuildLog(
+    guildId,
+    'member_kick',
+    operatorId,
+    userId,
+    `踢出了成员 ${targetUsername}`,
+    {}
+  );
 }
 
 export async function appointViceLeader(
@@ -212,10 +256,21 @@ export async function appointViceLeader(
   validateUserExists(targetUser);
   validateCanAppointViceLeader(operator, targetUser, guild);
 
+  const targetUsername = targetUser.username;
+
   targetUser.guildRole = 'vice_leader';
   guild.viceLeaderIds.push(userId);
 
   await saveDb();
+
+  await createGuildLog(
+    guildId,
+    'member_appoint_vice',
+    operatorId,
+    userId,
+    `任命 ${targetUsername} 为副会长`,
+    {}
+  );
 }
 
 export async function removeViceLeader(
@@ -228,18 +283,28 @@ export async function removeViceLeader(
   const operator = db.data!.users.find((u) => u.id === operatorId);
   validateUserExists(operator);
 
+  const guild = db.data!.guilds.find((g) => g.id === guildId);
+  validateGuildExists(guild);
+
   const targetUser = db.data!.users.find((u) => u.id === userId);
   validateUserExists(targetUser);
   validateCanRemoveViceLeader(operator, targetUser);
 
+  const targetUsername = targetUser.username;
+
   targetUser.guildRole = 'member';
-  
-  const guild = db.data!.guilds.find((g) => g.id === guildId);
-  if (guild) {
-    guild.viceLeaderIds = guild.viceLeaderIds.filter((id) => id !== userId);
-  }
+  guild.viceLeaderIds = guild.viceLeaderIds.filter((id) => id !== userId);
 
   await saveDb();
+
+  await createGuildLog(
+    guildId,
+    'member_remove_vice',
+    operatorId,
+    userId,
+    `罢免了 ${targetUsername} 的副会长职务`,
+    {}
+  );
 }
 
 export async function getUserById(userId: string): Promise<User | undefined> {

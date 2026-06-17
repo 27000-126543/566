@@ -14,7 +14,6 @@ import { formatDateTime } from '@/utils/format.js';
 export default function Announcements() {
   const { id } = useParams<{ id: string }>();
   const user = useAppStore((state) => state.user);
-  const currentGuild = useAppStore((state) => state.currentGuild);
   const announcements = useAppStore((state) => state.announcements);
   const members = useAppStore((state) => state.members);
   const fetchAnnouncements = useAppStore((state) => state.fetchAnnouncements);
@@ -27,9 +26,7 @@ export default function Announcements() {
     content: '',
   });
 
-  const isLeader = user?.id === currentGuild?.leaderId;
-  const isViceLeader = currentGuild?.viceLeaderIds.includes(user?.id || '');
-  const canCreate = isLeader || isViceLeader;
+  const canCreate = user?.guildRole === 'leader';
 
   useEffect(() => {
     if (id) {

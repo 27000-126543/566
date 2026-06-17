@@ -6,11 +6,12 @@ import {
   validateUserExists,
   validateGuildExists,
   validateUserNotInGuild,
-  validateGuildRole,
+  validateCanReviewItemApplication,
   ValidationError,
 } from '../validators/index.js';
 import type { WarehouseItem, ItemApplication } from '../../shared/types.js';
 import { generateId } from './authService.js';
+import { createGuildLog } from './guildLogService.js';
 
 export async function contributeItem(
   guildId: string,
@@ -58,6 +59,14 @@ export async function contributeItem(
   contributor.contribution += contributionPoints;
 
   await saveDb();
+
+  await createGuildLog(guildId, 'item_contribute', contributorId, contributorId, `贡献物品「${name}」×${quantity}`, {
+    itemId: newItem.id,
+    itemName: name,
+    itemRarity: rarity,
+    quantity,
+    contributionPoints,
+  });
 
   return newItem;
 }
@@ -148,7 +157,7 @@ export async function approveItemApplication(applicationId: string, reviewerId: 
 
   const reviewer = db.data!.users.find((u) => u.id === reviewerId);
   validateUserExists(reviewer);
-  validateGuildRole(reviewer, ['leader', 'vice_leader']);
+  validateCanReviewItemApplication(reviewer);
 
   const application = db.data!.itemApplications.find((app) => app.id === applicationId);
   if (!application) {
@@ -175,6 +184,14 @@ export async function approveItemApplication(applicationId: string, reviewerId: 
   application.reviewedBy = reviewerId;
 
   await saveDb();
+
+  await createGuildLog(application.guildId, 'item_approve', reviewerId, application.userId, `批准物品申领「${item.name}」×${application.quantity}`, {
+    applicationId: application.id,
+    itemId: item.id,
+    itemName: item.name,
+    itemRarity: item.rarity,
+    quantity: application.quantity,
+  });
 }
 
 export async function rejectItemApplication(applicationId: string, reviewerId: string): Promise<void> {
@@ -182,7 +199,7 @@ export async function rejectItemApplication(applicationId: string, reviewerId: s
 
   const reviewer = db.data!.users.find((u) => u.id === reviewerId);
   validateUserExists(reviewer);
-  validateGuildRole(reviewer, ['leader', 'vice_leader']);
+  validateCanReviewItemApplication(reviewer);
 
   const application = db.data!.itemApplications.find((app) => app.id === applicationId);
   if (!application) {
@@ -192,10 +209,19 @@ export async function rejectItemApplication(applicationId: string, reviewerId: s
     throw new ValidationError('该申请已被处理');
   }
 
+  const item = db.data!.warehouseItems.find((i) => i.id === application.itemId);
+
   application.status = 'rejected';
   application.reviewedBy = reviewerId;
 
   await saveDb();
+
+  await createGuildLog(application.guildId, 'item_reject', reviewerId, application.userId, `拒绝物品申领${item ? `「${item.name}」` : ''}×${application.quantity}`, {
+    applicationId: application.id,
+    itemId: application.itemId,
+    itemName: item?.name || null,
+    quantity: application.quantity,
+  });
 }
 
 export async function getItemById(itemId: string): Promise<WarehouseItem | undefined> {

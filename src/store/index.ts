@@ -1,18 +1,23 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, Guild, GuildApplication, Quest, WarehouseItem, ItemApplication, Announcement } from '../../shared/types.js';
+import type { User, Guild, GuildApplication, GuildLog, Quest, WarehouseItem, ItemApplication, Announcement } from '../../shared/types.js';
 import { api } from '../utils/api.js';
+
+interface GuildApplicationWithUser extends GuildApplication {
+  user: { username: string; profession: string; level: number } | null;
+}
 
 interface AppState {
   user: User | null;
   currentGuild: Guild | null;
   guilds: Guild[];
   members: User[];
-  applications: GuildApplication[];
+  applications: GuildApplicationWithUser[];
   quests: Quest[];
   warehouseItems: WarehouseItem[];
   itemApplications: ItemApplication[];
   announcements: Announcement[];
+  guildLogs: GuildLog[];
   notification: { type: 'success' | 'error' | 'info'; message: string } | null;
   
   setUser: (user: User | null) => void;
@@ -40,6 +45,9 @@ interface AppState {
   publishQuest: (guildId: string, data: { title: string; description: string; rewardContribution: number; rewardFunds: number; deadline: number; publisherId: string }) => Promise<boolean>;
   acceptQuest: (questId: string, userId: string) => Promise<boolean>;
   completeQuest: (questId: string, userId: string) => Promise<boolean>;
+  settleQuest: (questId: string, userId: string) => Promise<boolean>;
+  settleAllQuests: (guildId: string, userId: string) => Promise<boolean>;
+  fetchGuildLogs: (guildId: string, userId: string, userRole: string) => Promise<void>;
   
   fetchWarehouseItems: (guildId: string) => Promise<void>;
   contributeItem: (guildId: string, data: { name: string; quantity: number; rarity: string; contributorId: string }) => Promise<boolean>;
@@ -64,6 +72,7 @@ export const useAppStore = create<AppState>()(
       warehouseItems: [],
       itemApplications: [],
       announcements: [],
+      guildLogs: [],
       notification: null,
       
       setUser: (user) => set({ user }),
@@ -105,6 +114,7 @@ export const useAppStore = create<AppState>()(
           warehouseItems: [],
           itemApplications: [],
           announcements: [],
+          guildLogs: [],
         });
       },
       
@@ -153,7 +163,7 @@ export const useAppStore = create<AppState>()(
       },
       
       fetchApplications: async (guildId) => {
-        const res = await api.get<GuildApplication[]>(`/guilds/${guildId}/applications`);
+        const res = await api.get<GuildApplicationWithUser[]>(`/guilds/${guildId}/applications`);
         if (res.success && res.data) {
           set({ applications: res.data });
         }
@@ -246,10 +256,39 @@ export const useAppStore = create<AppState>()(
       completeQuest: async (questId, userId) => {
         const res = await api.post<Quest>(`/quests/${questId}/complete`, { userId });
         if (res.success) {
-          set({ notification: { type: 'success', message: '任务完成！奖励已发放！' } });
+          set({ notification: { type: 'success', message: '任务完成！等待结算后发放奖励' } });
           return true;
         } else {
           set({ notification: { type: 'error', message: res.error || '操作失败' } });
+          return false;
+        }
+      },
+      
+      fetchGuildLogs: async (guildId, userId, userRole) => {
+        const res = await api.get<GuildLog[]>(`/guild-logs/${guildId}?userId=${userId}&userRole=${userRole}`);
+        if (res.success && res.data) {
+          set({ guildLogs: res.data });
+        }
+      },
+      
+      settleQuest: async (questId, userId) => {
+        const res = await api.post(`/quests/${questId}/settle`, { userId });
+        if (res.success) {
+          set({ notification: { type: 'success', message: '任务结算成功！奖励已发放' } });
+          return true;
+        } else {
+          set({ notification: { type: 'error', message: res.error || '结算失败' } });
+          return false;
+        }
+      },
+      
+      settleAllQuests: async (guildId, userId) => {
+        const res = await api.post<number>(`/quests/settle-all/${guildId}`, { userId });
+        if (res.success && typeof res.data === 'number') {
+          set({ notification: { type: 'success', message: `成功结算 ${res.data} 个任务！` } });
+          return true;
+        } else {
+          set({ notification: { type: 'error', message: res.error || '批量结算失败' } });
           return false;
         }
       },
