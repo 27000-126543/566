@@ -33,14 +33,7 @@ export default function App() {
               <GuildHome />
             </ProtectedRoute>
           }
-        >
-          <Route index element={<Navigate to="members" replace />} />
-          <Route path="members" element={<Members />} />
-          <Route path="quests" element={<Quests />} />
-          <Route path="warehouse" element={<Warehouse />} />
-          <Route path="announcements" element={<Announcements />} />
-          <Route path="logs" element={<GuildLogs />} />
-        </Route>
+        />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

@@ -10,6 +10,7 @@ import {
   validateGuildExists,
   validateGuildRole,
   validateCanSettleQuests,
+  validateUserBelongsToGuild,
   ValidationError,
 } from '../validators/index.js';
 import type { Quest, GuildLogType } from '../../shared/types.js';
@@ -30,6 +31,7 @@ export async function publishQuest(
   const publisher = db.data!.users.find((u) => u.id === publisherId);
   validateUserExists(publisher);
   validateGuildRole(publisher, ['leader', 'vice_leader']);
+  validateUserBelongsToGuild(publisher, guildId);
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
@@ -83,6 +85,9 @@ export async function acceptQuest(questId: string, userId: string): Promise<void
   if (!quest) {
     throw new ValidationError('任务不存在');
   }
+  if (quest.guildId !== user.guildId) {
+    throw new ValidationError('您无权接取其他公会的任务');
+  }
   if (quest.status !== 'available') {
     throw new ValidationError('该任务不可接取');
   }
@@ -111,6 +116,9 @@ export async function completeQuest(questId: string, userId: string): Promise<vo
   if (!quest) {
     throw new ValidationError('任务不存在');
   }
+  if (quest.guildId !== user.guildId) {
+    throw new ValidationError('您无权完成其他公会的任务');
+  }
   if (quest.status !== 'in_progress') {
     throw new ValidationError('该任务未在进行中');
   }
@@ -135,6 +143,7 @@ export async function settleQuest(questId: string, operatorId: string): Promise<
   if (!quest) {
     throw new ValidationError('任务不存在');
   }
+  validateUserBelongsToGuild(operator, quest.guildId);
   if (quest.status !== 'pending_settlement') {
     throw new ValidationError('该任务状态不是待结算，无法结算');
   }
@@ -166,6 +175,10 @@ export async function settleAllPendingQuests(guildId: string, operatorId: string
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
+
+  const operator = db.data!.users.find((u) => u.id === operatorId);
+  validateUserExists(operator);
+  validateUserBelongsToGuild(operator, guildId);
 
   const pendingQuests = db.data!.quests.filter(
     (q) => q.guildId === guildId && q.status === 'pending_settlement'

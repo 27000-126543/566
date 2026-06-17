@@ -65,6 +65,7 @@ export default function GuildDashboard() {
   const quickActions = [
     {
       key: 'members',
+      path: 'members',
       label: '成员管理',
       icon: Users,
       color: 'from-blue-500 to-blue-700',
@@ -73,6 +74,8 @@ export default function GuildDashboard() {
     },
     {
       key: 'applications',
+      path: 'members',
+      query: { tab: 'applications' },
       label: '入会申请',
       icon: UserCheck,
       color: 'from-green-500 to-green-700',
@@ -81,6 +84,7 @@ export default function GuildDashboard() {
     },
     {
       key: 'quests',
+      path: 'quests',
       label: '任务系统',
       icon: Scroll,
       color: 'from-yellow-500 to-orange-600',
@@ -89,6 +93,8 @@ export default function GuildDashboard() {
     },
     {
       key: 'settlement',
+      path: 'quests',
+      query: { filter: 'pending_settlement' },
       label: '任务结算',
       icon: Wallet,
       color: 'from-emerald-500 to-emerald-700',
@@ -97,6 +103,7 @@ export default function GuildDashboard() {
     },
     {
       key: 'warehouse',
+      path: 'warehouse',
       label: '仓库管理',
       icon: Package,
       color: 'from-purple-500 to-purple-700',
@@ -105,6 +112,7 @@ export default function GuildDashboard() {
     },
     {
       key: 'announcements',
+      path: 'announcements',
       label: '公告管理',
       icon: Megaphone,
       color: 'from-cyan-500 to-cyan-700',
@@ -113,6 +121,7 @@ export default function GuildDashboard() {
     },
     {
       key: 'logs',
+      path: 'logs',
       label: '操作记录',
       icon: History,
       color: 'from-gray-500 to-gray-700',
@@ -121,8 +130,10 @@ export default function GuildDashboard() {
     },
   ].filter((item) => item.show);
 
-  const handleNavigate = (path: string) => {
-    navigate(`/guild/${id}/${path}`);
+  const handleNavigate = (path: string, query?: Record<string, string>) => {
+    const url = new URLSearchParams(query);
+    const queryStr = url.toString();
+    navigate(`/guild/${id}/${path}${queryStr ? `?${queryStr}` : ''}`);
   };
 
   return (
@@ -229,7 +240,7 @@ export default function GuildDashboard() {
                 </div>
               </div>
               <button
-                onClick={() => handleNavigate('members')}
+                onClick={() => handleNavigate('members', { tab: 'applications' })}
                 className="flex items-center gap-1 text-primary-400 hover:text-primary-300 text-sm font-medium"
               >
                 立即处理
@@ -256,7 +267,7 @@ export default function GuildDashboard() {
                 </div>
               </div>
               <button
-                onClick={() => handleNavigate('quests')}
+                onClick={() => handleNavigate('quests', { filter: 'pending_settlement' })}
                 className="flex items-center gap-1 text-primary-400 hover:text-primary-300 text-sm font-medium"
               >
                 去结算
@@ -275,7 +286,7 @@ export default function GuildDashboard() {
             return (
               <button
                 key={action.key}
-                onClick={() => handleNavigate(action.key)}
+                onClick={() => handleNavigate(action.path, action.query)}
                 className="group glass-effect p-5 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] hover:border-primary-500/50"
               >
                 <div className={`w-12 h-12 bg-gradient-to-br ${action.color} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200`}>

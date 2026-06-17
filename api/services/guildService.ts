@@ -12,6 +12,7 @@ import {
   validateCanAppointViceLeader,
   validateCanRemoveViceLeader,
   validateCanApproveGuildApplication,
+  validateUserBelongsToGuild,
   ValidationError,
 } from '../validators/index.js';
 import type { Guild, User, GuildApplication } from '../../shared/types.js';
@@ -125,6 +126,7 @@ export async function approveApplication(
   const reviewer = db.data!.users.find((u) => u.id === reviewerId);
   validateUserExists(reviewer);
   validateCanApproveGuildApplication(reviewer);
+  validateUserBelongsToGuild(reviewer, guildId);
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
@@ -171,6 +173,7 @@ export async function rejectApplication(
   const reviewer = db.data!.users.find((u) => u.id === reviewerId);
   validateUserExists(reviewer);
   validateCanApproveGuildApplication(reviewer);
+  validateUserBelongsToGuild(reviewer, guildId);
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
@@ -212,6 +215,7 @@ export async function kickMember(
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
+  validateUserBelongsToGuild(operator, guildId);
 
   const targetUser = db.data!.users.find((u) => u.id === userId);
   validateUserExists(targetUser);
@@ -251,6 +255,7 @@ export async function appointViceLeader(
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
+  validateUserBelongsToGuild(operator, guildId);
 
   const targetUser = db.data!.users.find((u) => u.id === userId);
   validateUserExists(targetUser);
@@ -285,6 +290,7 @@ export async function removeViceLeader(
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
+  validateUserBelongsToGuild(operator, guildId);
 
   const targetUser = db.data!.users.find((u) => u.id === userId);
   validateUserExists(targetUser);

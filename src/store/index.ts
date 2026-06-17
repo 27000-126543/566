@@ -47,7 +47,7 @@ interface AppState {
   completeQuest: (questId: string, userId: string) => Promise<boolean>;
   settleQuest: (questId: string, userId: string) => Promise<boolean>;
   settleAllQuests: (guildId: string, userId: string) => Promise<boolean>;
-  fetchGuildLogs: (guildId: string, userId: string, userRole: string) => Promise<void>;
+  fetchGuildLogs: (guildId: string, userId: string) => Promise<void>;
   
   fetchWarehouseItems: (guildId: string) => Promise<void>;
   contributeItem: (guildId: string, data: { name: string; quantity: number; rarity: string; contributorId: string }) => Promise<boolean>;
@@ -264,8 +264,8 @@ export const useAppStore = create<AppState>()(
         }
       },
       
-      fetchGuildLogs: async (guildId, userId, userRole) => {
-        const res = await api.get<GuildLog[]>(`/guild-logs/${guildId}?userId=${userId}&userRole=${userRole}`);
+      fetchGuildLogs: async (guildId, userId) => {
+        const res = await api.get<GuildLog[]>(`/guild-logs/${guildId}?userId=${userId}`);
         if (res.success && res.data) {
           set({ guildLogs: res.data });
         }

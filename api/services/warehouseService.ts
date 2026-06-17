@@ -6,6 +6,7 @@ import {
   validateUserExists,
   validateGuildExists,
   validateUserNotInGuild,
+  validateUserBelongsToGuild,
   validateCanReviewItemApplication,
   ValidationError,
 } from '../validators/index.js';
@@ -25,6 +26,7 @@ export async function contributeItem(
   const contributor = db.data!.users.find((u) => u.id === contributorId);
   validateUserExists(contributor);
   validateUserNotInGuild(contributor);
+  validateUserBelongsToGuild(contributor, guildId);
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
@@ -102,6 +104,7 @@ export async function applyForItem(
   const user = db.data!.users.find((u) => u.id === userId);
   validateUserExists(user);
   validateUserNotInGuild(user);
+  validateUserBelongsToGuild(user, guildId);
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);
@@ -155,14 +158,16 @@ export async function getItemApplicationsByGuildId(guildId: string): Promise<Ite
 export async function approveItemApplication(applicationId: string, reviewerId: string): Promise<void> {
   const db = await getDb();
 
-  const reviewer = db.data!.users.find((u) => u.id === reviewerId);
-  validateUserExists(reviewer);
-  validateCanReviewItemApplication(reviewer);
-
   const application = db.data!.itemApplications.find((app) => app.id === applicationId);
   if (!application) {
     throw new ValidationError('申请不存在');
   }
+
+  const reviewer = db.data!.users.find((u) => u.id === reviewerId);
+  validateUserExists(reviewer);
+  validateCanReviewItemApplication(reviewer);
+  validateUserBelongsToGuild(reviewer, application.guildId);
+
   if (application.status !== 'pending') {
     throw new ValidationError('该申请已被处理');
   }
@@ -197,14 +202,16 @@ export async function approveItemApplication(applicationId: string, reviewerId: 
 export async function rejectItemApplication(applicationId: string, reviewerId: string): Promise<void> {
   const db = await getDb();
 
-  const reviewer = db.data!.users.find((u) => u.id === reviewerId);
-  validateUserExists(reviewer);
-  validateCanReviewItemApplication(reviewer);
-
   const application = db.data!.itemApplications.find((app) => app.id === applicationId);
   if (!application) {
     throw new ValidationError('申请不存在');
   }
+
+  const reviewer = db.data!.users.find((u) => u.id === reviewerId);
+  validateUserExists(reviewer);
+  validateCanReviewItemApplication(reviewer);
+  validateUserBelongsToGuild(reviewer, application.guildId);
+
   if (application.status !== 'pending') {
     throw new ValidationError('该申请已被处理');
   }

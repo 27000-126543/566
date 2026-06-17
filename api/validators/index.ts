@@ -292,3 +292,9 @@ export function validateAnnouncementContent(content: string): void {
     throw new ValidationError('公告内容不能超过1000个字符');
   }
 }
+
+export function validateUserBelongsToGuild(user: User, guildId: string): void {
+  if (user.guildId !== guildId) {
+    throw new ValidationError('您无权操作其他公会的资源');
+  }
+}

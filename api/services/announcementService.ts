@@ -5,6 +5,7 @@ import {
   validateUserExists,
   validateGuildExists,
   validateCanCreateAnnouncement,
+  validateUserBelongsToGuild,
 } from '../validators/index.js';
 import type { Announcement } from '../../shared/types.js';
 import { generateId } from './authService.js';
@@ -21,6 +22,7 @@ export async function createAnnouncement(
   const author = db.data!.users.find((u) => u.id === authorId);
   validateUserExists(author);
   validateCanCreateAnnouncement(author);
+  validateUserBelongsToGuild(author, guildId);
 
   const guild = db.data!.guilds.find((g) => g.id === guildId);
   validateGuildExists(guild);

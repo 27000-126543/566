@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Users, UserCheck, UserX, Crown, Star, Sword, Wand2, Target, Heart, UserMinus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card.js';
@@ -25,6 +25,7 @@ const roleIcons: Record<GuildRole, React.ReactNode> = {
 
 export default function Members() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const user = useAppStore((state) => state.user);
   const members = useAppStore((state) => state.members);
   const applications = useAppStore((state) => state.applications);
@@ -37,10 +38,22 @@ export default function Members() {
   const kickMember = useAppStore((state) => state.kickMember);
   const appointViceLeader = useAppStore((state) => state.appointViceLeader);
   const removeViceLeader = useAppStore((state) => state.removeViceLeader);
-  const [activeTab, setActiveTab] = useState<'members' | 'applications'>('members');
+  
+  const urlTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'members' | 'applications'>(
+    urlTab === 'applications' ? 'applications' : 'members'
+  );
 
   const isLeader = user?.guildRole === 'leader';
   const isViceLeader = currentGuild?.viceLeaderIds.includes(user?.id || '');
+
+  useEffect(() => {
+    if (urlTab === 'applications') {
+      setActiveTab('applications');
+    } else {
+      setActiveTab('members');
+    }
+  }, [urlTab]);
 
   useEffect(() => {
     if (id) {
@@ -106,7 +119,10 @@ export default function Members() {
         <div className="flex gap-2">
           <Button
             variant={activeTab === 'members' ? 'primary' : 'secondary'}
-            onClick={() => setActiveTab('members')}
+            onClick={() => {
+              setActiveTab('members');
+              setSearchParams({});
+            }}
           >
             <Users className="w-4 h-4 mr-2" />
             成员列表
@@ -114,7 +130,10 @@ export default function Members() {
           </Button>
           <Button
             variant={activeTab === 'applications' ? 'primary' : 'secondary'}
-            onClick={() => setActiveTab('applications')}
+            onClick={() => {
+              setActiveTab('applications');
+              setSearchParams({ tab: 'applications' });
+            }}
           >
             <Plus className="w-4 h-4 mr-2" />
             入会申请

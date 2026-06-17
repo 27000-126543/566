@@ -1,15 +1,18 @@
 import { Router, type Request, type Response } from 'express';
 import * as guildLogService from '../services/guildLogService.js';
 import { ValidationError } from '../validators/index.js';
-import type { GuildRole } from '../../shared/types.js';
 
 const router = Router();
 
 router.get('/:guildId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { guildId } = req.params;
-    const { userId, userRole } = req.query;
-    const result = await guildLogService.getGuildLogs(guildId, userId as string, userRole as GuildRole);
+    const { userId } = req.query;
+    if (!userId || typeof userId !== 'string') {
+      res.status(400).json({ success: false, error: '缺少用户ID参数' });
+      return;
+    }
+    const result = await guildLogService.getGuildLogs(guildId, userId);
     res.json({ success: true, data: result });
   } catch (err) {
     if (err instanceof ValidationError) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Clock, CheckCircle, PlayCircle, XCircle, Coins, Star, Calendar, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/Button.js';
 import { Input } from '@/components/ui/Input.js';
@@ -43,6 +43,7 @@ const filterTabs: { key: QuestStatus | 'all'; label: string }[] = [
 
 export default function Quests() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const user = useAppStore((state) => state.user);
   const currentGuild = useAppStore((state) => state.currentGuild);
   const quests = useAppStore((state) => state.quests);
@@ -56,7 +57,14 @@ export default function Quests() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isSettlingAll, setIsSettlingAll] = useState(false);
-  const [filter, setFilter] = useState<QuestStatus | 'all'>('all');
+  
+  const urlFilter = searchParams.get('filter') as QuestStatus | 'all' | null;
+  const [filter, setFilter] = useState<QuestStatus | 'all'>(
+    urlFilter && ['all', 'available', 'in_progress', 'completed', 'pending_settlement', 'settled', 'expired'].includes(urlFilter)
+      ? urlFilter
+      : 'all'
+  );
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -68,6 +76,14 @@ export default function Quests() {
   const isLeader = user?.guildRole === 'leader';
   const isViceLeader = currentGuild?.viceLeaderIds.includes(user?.id || '');
   const canManage = isLeader || isViceLeader;
+
+  useEffect(() => {
+    if (urlFilter && ['all', 'available', 'in_progress', 'completed', 'pending_settlement', 'settled', 'expired'].includes(urlFilter)) {
+      setFilter(urlFilter);
+    } else {
+      setFilter('all');
+    }
+  }, [urlFilter]);
 
   useEffect(() => {
     if (id) {
@@ -180,7 +196,14 @@ export default function Quests() {
             key={tab.key}
             variant={filter === tab.key ? 'primary' : 'secondary'}
             size="sm"
-            onClick={() => setFilter(tab.key)}
+            onClick={() => {
+              setFilter(tab.key);
+              if (tab.key === 'all') {
+                setSearchParams({});
+              } else {
+                setSearchParams({ filter: tab.key });
+              }
+            }}
           >
             {tab.label}
           </Button>

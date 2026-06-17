@@ -73,7 +73,7 @@ export default function GuildLogs() {
 
   useEffect(() => {
     if (id && user) {
-      fetchGuildLogs(id, user.id, user.guildRole || 'member');
+      fetchGuildLogs(id, user.id);
     }
   }, [id, user, fetchGuildLogs]);
 
